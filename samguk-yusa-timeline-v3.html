@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>삼국유사 시간여행 지도 v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#241c14;
+    --sky-deep:#141b30;
+    --cloud:#f2e8d5;
+    --clay:#c1440e;
+    --clay-soft:#e2725b;
+    --teal:#2f6f62;
+    --gold:#e3a72f;
+    --indigo:#2b3a67;
+    --stone:#8b7d9b;
+    --paper:#fbf3df;
+    --line:#241c14;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:'Gowun Dodum', sans-serif;
+    background:
+      radial-gradient(ellipse at 20% 0%, #2b3a67 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 10%, #3a2b4f 0%, transparent 45%),
+      var(--sky-deep);
+    color:var(--cloud);
+    min-height:100%;
+    overflow-x:hidden;
+  }
+  .app{ max-width:1180px; margin:0 auto; padding:18px 14px 40px; }
+
+  header{ text-align:center; padding:10px 0 20px; }
+  header h1{
+    font-family:'Do Hyeon', sans-serif;
+    font-size:clamp(28px, 5.5vw, 46px);
+    letter-spacing:1px; margin:0 0 6px; color:var(--gold);
+    text-shadow: 0 2px 0 rgba(0,0,0,.35);
+  }
+  header p{ margin:0; font-size:clamp(14px,2.6vw,17px); color:#cfd6ea; opacity:.9; }
+
+  .timeline-outer{ position:relative; margin:18px 0 22px; }
+  .timeline-track{
+    position:relative; display:flex; gap:10px; overflow-x:auto;
+    padding:14px 8px 18px; scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
+  }
+  .timeline-track::-webkit-scrollbar{height:8px;}
+  .timeline-track::-webkit-scrollbar-thumb{background:#4a5a86;border-radius:8px;}
+  .timeline-track::before{
+    content:""; position:absolute; left:8px; right:8px; top:36px; height:4px;
+    background:repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 16px);
+    opacity:.55; z-index:0;
+  }
+  .era-btn{
+    position:relative; z-index:1; flex:0 0 auto; width:104px;
+    background:var(--indigo); border:3px solid transparent; border-radius:16px;
+    color:var(--cloud); padding:10px 6px 8px; cursor:pointer;
+    font-family:'Gowun Dodum', sans-serif; text-align:center;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+    box-shadow: 0 3px 0 rgba(0,0,0,.35);
+  }
+  .era-btn .yr{ display:block; font-family:'Do Hyeon', sans-serif; font-size:14px; color:var(--gold); margin-bottom:3px; }
+  .era-btn .lb{ display:block; font-size:13px; line-height:1.25; }
+  .era-btn:hover{ transform:translateY(-2px); }
+  .era-btn.active{
+    background:var(--clay); border-color:var(--gold);
+    transform:translateY(-4px) scale(1.04); box-shadow: 0 6px 0 rgba(0,0,0,.4);
+  }
+  .arrow-btn{
+    position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px;
+    border-radius:50%; border:none; background:var(--gold); color:var(--ink);
+    font-size:18px; cursor:pointer; box-shadow:0 3px 0 rgba(0,0,0,.35); z-index:2;
+  }
+  .arrow-btn:active{ transform:translateY(-50%) scale(.92); }
+  .arrow-left{ left:-6px; }
+  .arrow-right{ right:-6px; }
+  @media (max-width:640px){ .arrow-btn{ display:none; } }
+
+  .stage{ display:grid; grid-template-columns: 1.1fr 1fr; gap:18px; align-items:start; }
+  @media (max-width:860px){ .stage{ grid-template-columns:1fr; } }
+
+  .map-panel{
+    background: linear-gradient(180deg, #24345c, #182747);
+    border-radius:22px; padding:14px; border:3px solid #3a4d80; position:relative;
+  }
+  .map-caption{ text-align:center; font-size:13px; color:#b9c3e0; margin:0 0 8px; }
+  .map-svg-wrap{
+    position:relative; border-radius:16px; overflow:hidden;
+    background:
+      radial-gradient(ellipse at 48% 18%, rgba(81,114,94,.35), transparent 38%),
+      radial-gradient(ellipse at 54% 58%, rgba(81,114,94,.32), transparent 48%),
+      linear-gradient(180deg, #1d5c83, #174a73 48%, #123a63);
+  }
+  .era-map-image{ width:100%; height:auto; display:block; }
+  svg#map{ display:none; }
+  .sea-wash{ fill:url(#seaGrad); }
+  .land-base{ fill:#b6a06d; stroke:#2b281f; stroke-width:2.2; opacity:.95; filter:url(#paperRough); }
+  .land-shadow{ fill:#6f7a4d; opacity:.22; filter:url(#paperRough); }
+  .river{ fill:none; stroke:#275f84; stroke-width:2; stroke-linecap:round; opacity:.58; }
+  .coast-note{ fill:none; stroke:#e7d8a8; stroke-width:1.2; stroke-dasharray:3 6; opacity:.34; }
+
+  .territory{ transition: opacity .7s ease, transform .7s ease; transform-origin:center; transform-box:fill-box; }
+  .mood-hidden{ opacity:0; }
+  .mood-founding{ opacity:.76; transform:scale(.55); }
+  .mood-normal{ opacity:.74; }
+  .mood-fading{ opacity:.34; filter:grayscale(45%); }
+  .mood-fallen{ opacity:.16; filter:grayscale(90%); }
+
+  .sea-label text{ font-family:'Gowun Dodum', sans-serif; font-size:13px; fill:#9fb3d9; font-style:italic; }
+  .city-dot circle{ fill:#fff9ec; stroke:var(--ink); stroke-width:1.4; }
+  .city-dot text{ font-family:'Gowun Dodum', sans-serif; font-size:10.5px; fill:#f2e8d5; }
+  .far-region .fbox{ fill:#241c1c; fill-opacity:.35; stroke:#9fb3d9; stroke-width:1; stroke-dasharray:2 3; }
+  .far-region text{ font-family:'Gowun Dodum', sans-serif; font-size:10.5px; fill:#cfd6ea; }
+
+  .kingdom-label text{
+    font-family:'Do Hyeon', sans-serif; font-size:15px; fill:#fffaf0;
+    paint-order:stroke; stroke:#241c14; stroke-width:3.5px;
+  }
+  .king-tag{ transition: opacity .5s ease; pointer-events:none; }
+  .king-tag text{
+    font-family:'Do Hyeon', sans-serif; font-size:12px; fill:#fffaf0;
+    paint-order:stroke; stroke:#241c14; stroke-width:3px;
+  }
+  .foreign-tag{ transition:opacity .5s ease; }
+  .foreign-tag .fbox{ fill:#241c1c; fill-opacity:.6; stroke:var(--stone); stroke-width:1.4; }
+  .foreign-tag text{ font-family:'Gowun Dodum', sans-serif; font-size:11px; fill:#e9e2f2; }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:10px 16px; justify-content:center; margin-top:10px; font-size:12px; color:#cfd6ea; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .legend i{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+  .cards-panel{
+    background:var(--paper); border-radius:22px; padding:16px; color:var(--ink);
+    min-height:340px; border:3px solid #d8c9a3;
+  }
+  .cards-title{ font-family:'Do Hyeon', sans-serif; font-size:20px; margin:2px 4px 12px; color:var(--indigo); }
+  .card-list{ display:flex; flex-direction:column; gap:12px; }
+  .event-card{
+    border-radius:16px; padding:12px 14px; border:2.5px solid var(--line);
+    background:#fff; box-shadow:3px 4px 0 rgba(36,28,20,.18); animation: pop .35s ease both;
+  }
+  @keyframes pop{ from{ opacity:0; transform:translateY(8px) scale(.98); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  .event-card .top-row{
+    display:grid;
+    grid-template-columns:52px 30px minmax(0,1fr) auto;
+    align-items:center;
+    gap:8px;
+    margin-bottom:6px;
+  }
+  .portrait-thumb{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    object-fit:cover;
+    box-shadow:0 2px 0 rgba(36,28,20,.18);
+    background:#eadfc6;
+  }
+  .crest{
+    width:30px;height:30px;border-radius:50%; display:flex;align-items:center;justify-content:center;
+    font-size:16px; border:2px solid var(--line); flex:0 0 auto;
+  }
+  .king-name{ font-family:'Do Hyeon', sans-serif; font-size:17px; min-width:0; overflow-wrap:anywhere; }
+  .kingdom-chip{ font-size:11px; padding:2px 8px; border-radius:999px; border:1.5px solid var(--line); margin-left:auto; white-space:nowrap; }
+  .event-text{ font-size:15.5px; line-height:1.5; margin:0; }
+  .event-card.foreign{ border-style:dashed; background:#fff9ec; }
+  .foreign-note{ display:inline-block; font-size:11px; background:var(--indigo); color:#fff; padding:2px 8px; border-radius:999px; margin-bottom:6px; }
+
+  .c-silla   { --kc: var(--clay-soft); }
+  .c-goguryeo{ --kc: var(--indigo); }
+  .c-baekje  { --kc: var(--teal); }
+  .c-gaya    { --kc: var(--gold); }
+  .c-foreign { --kc: var(--stone); }
+  .event-card{ border-left:8px solid var(--kc); }
+  .crest{ background:var(--kc); color:#fff; }
+  .kingdom-chip{ background:var(--kc); color:#fff; border-color:var(--kc); }
+  @media (max-width:420px){
+    .event-card .top-row{ grid-template-columns:48px 28px minmax(0,1fr); }
+    .portrait-thumb{ width:48px; height:48px; }
+    .kingdom-chip{ grid-column:3; justify-self:start; margin-left:0; }
+  }
+
+  footer.credit{ text-align:center; margin-top:26px; font-size:12px; color:#8a94b8; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>🏺 삼국유사 시간여행 지도</h1>
+    <p>시간 버튼을 눌러 가야 · 신라 · 백제 · 고구려가 넓어지고 좁아지는 모습을 만나 보세요</p>
+  </header>
+
+  <div class="timeline-outer">
+    <button class="arrow-btn arrow-left" id="prevBtn" aria-label="이전">◀</button>
+    <div class="timeline-track" id="timelineTrack"></div>
+    <button class="arrow-btn arrow-right" id="nextBtn" aria-label="다음">▶</button>
+  </div>
+
+  <div class="stage">
+    <div class="map-panel">
+      <p class="map-caption">📍 실제 지도 모양에 맞춰, 나라의 넓이를 알기 쉽게 표시했어요</p>
+      <div class="map-svg-wrap">
+        <img class="era-map-image" id="eraMapImage" src="assets/era-maps/era-01.png" alt="시대별 삼국 지도">
+        <svg id="map" viewBox="0 0 480 640" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#24668c"/>
+              <stop offset="55%" stop-color="#1b557d"/>
+              <stop offset="100%" stop-color="#143d66"/>
+            </linearGradient>
+            <filter id="rough" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="2" seed="7" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="7"/>
+            </filter>
+            <filter id="paperRough" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="4" result="paper"/>
+              <feDisplacementMap in="SourceGraphic" in2="paper" scale="2.5"/>
+            </filter>
+          </defs>
+
+          <rect class="sea-wash" width="480" height="640"/>
+
+          <!-- fixed basemap: simplified Korea + Manchuria coordinate layer -->
+          <path class="land-shadow" d="M52,0 L448,0 L448,178 C420,170 390,162 360,150
+                   C346,178 344,212 360,246 C388,305 390,372 364,430
+                   C350,462 354,498 336,532 C312,576 268,610 218,620
+                   C170,630 126,608 104,568 C82,528 82,476 98,430
+                   C112,386 116,342 100,302 C82,254 64,210 64,162
+                   C64,104 76,54 52,0 Z"/>
+          <path class="land-base" d="M46,0 L446,0 L446,164
+                   C424,160 400,154 374,144 C348,134 324,130 300,136
+                   C292,160 302,184 320,210 C350,254 366,304 362,354
+                   C358,398 336,432 330,472 C326,504 306,540 274,568
+                   C238,600 190,612 150,592 C116,576 96,542 92,500
+                   C88,456 100,414 110,376 C120,338 110,304 94,270
+                   C76,232 62,188 64,142 C66,98 78,52 46,0 Z"/>
+          <path class="land-base" d="M338,0 L480,0 L480,230 C454,226 430,218 410,202
+                   C390,184 372,168 350,158 C364,112 360,58 338,0 Z" opacity=".72"/>
+          <path class="land-base" d="M184,604 C218,590 256,602 262,622 C250,638 204,642 178,630 C164,622 166,612 184,604 Z" opacity=".78"/>
+          <ellipse class="land-base" cx="421" cy="357" rx="7" ry="8" opacity=".8"/>
+          <path class="coast-note" d="M64,142 C66,98 78,52 46,0 M320,210 C350,254 366,304 362,354
+                   C358,398 336,432 330,472 C326,504 306,540 274,568
+                   C238,600 190,612 150,592"/>
+          <path class="river" d="M300,136 C284,160 266,188 244,216 C222,244 204,270 190,298"/>
+          <path class="river" d="M96,270 C128,280 164,292 206,310 C240,324 274,342 318,354"/>
+          <path class="river" d="M128,408 C160,418 190,424 222,436"/>
+          <path class="river" d="M316,486 C302,498 288,512 276,532"/>
+
+          <!-- ============ TERRITORY SHAPES ============ -->
+
+          <!-- GOGURYEO -->
+          <path id="t-goguryeo-normal" class="territory mood-hidden" filter="url(#rough)"
+                d="M54,0 L372,0 C388,42 382,82 354,112
+                   C330,138 302,150 292,178 C282,208 254,238 214,258
+                   C180,276 148,264 126,236 C108,214 88,206 66,214
+                   C62,186 62,158 66,130 C72,84 82,42 54,0 Z"
+                fill="var(--indigo)" stroke="var(--line)" stroke-width="3"/>
+          <path id="t-goguryeo-peak" class="territory mood-hidden" filter="url(#rough)"
+                d="M54,0 L374,0 C390,42 384,82 356,114
+                   C334,140 314,158 320,194 C326,232 314,270 286,306
+                   C270,328 266,348 284,370 C252,386 214,380 180,360
+                   C146,340 116,330 88,338 C78,306 82,270 104,232
+                   C82,218 66,196 66,164 C70,116 82,58 54,0 Z"
+                fill="var(--indigo)" stroke="var(--line)" stroke-width="3"/>
+
+          <!-- BAEKJE -->
+          <path id="t-baekje-normal" class="territory mood-hidden" filter="url(#rough)"
+                d="M112,354 C144,336 184,340 214,366 C238,390 240,424 228,458
+                   C218,486 228,508 252,522 C222,542 178,548 144,530
+                   C110,512 92,480 96,442 C100,404 96,376 112,354 Z"
+                fill="var(--teal)" stroke="var(--line)" stroke-width="3"/>
+          <path id="t-baekje-peak" class="territory mood-hidden" filter="url(#rough)"
+                d="M88,304 C126,282 178,286 218,312 C256,338 274,378 266,422
+                   C258,464 270,494 300,516 C264,542 216,552 170,536
+                   C126,520 96,490 90,448 C84,406 82,352 88,304 Z"
+                fill="var(--teal)" stroke="var(--line)" stroke-width="3"/>
+
+          <!-- SILLA -->
+          <path id="t-silla-normal" class="territory mood-hidden" filter="url(#rough)"
+                d="M280,422 C314,412 350,432 358,466 C366,500 348,536 316,552
+                   C284,568 254,552 246,518 C238,482 250,434 280,422 Z"
+                fill="var(--clay-soft)" stroke="var(--line)" stroke-width="3"/>
+          <path id="t-silla-peak" class="territory mood-hidden" filter="url(#rough)"
+                d="M258,312 C292,304 324,316 342,344 C360,374 358,404 340,430
+                   C368,462 364,510 332,544 C304,574 256,578 222,552
+                   C196,532 188,498 202,466 C180,454 168,432 174,402
+                   C180,370 204,350 230,344 C232,328 240,318 258,312 Z"
+                fill="var(--clay-soft)" stroke="var(--line)" stroke-width="3"/>
+          <path id="t-silla-unified" class="territory mood-hidden" filter="url(#rough)"
+                d="M126,282 C174,258 230,264 274,296 C318,328 348,378 356,430
+                   C364,486 340,540 298,574 C258,606 202,614 156,590
+                   C116,568 94,530 90,482 C86,436 94,390 108,348
+                   C116,322 114,300 126,282 Z"
+                fill="var(--clay-soft)" stroke="var(--line)" stroke-width="3"/>
+
+          <!-- GAYA -->
+          <path id="t-gaya-normal" class="territory mood-hidden" filter="url(#rough)"
+                d="M218,472 C240,456 274,456 296,474 C314,492 306,520 284,536
+                   C260,552 228,546 212,524 C198,504 200,486 218,472 Z"
+                fill="var(--gold)" stroke="var(--line)" stroke-width="3"/>
+
+          <!-- ============ static geography ============ -->
+          <g class="sea-label"><text x="392" y="255">동해</text></g>
+          <g class="sea-label"><text x="40" y="330">황해</text></g>
+          <g class="city-dot"><circle cx="421" cy="357" r="3"/><text x="427" y="361">우산</text></g>
+          <g class="city-dot"><circle cx="210" cy="622" r="0"/><text x="190" y="626">탐라</text></g>
+          <g class="far-region"><rect class="fbox" x="10" y="95" width="72" height="26" rx="8"/><text x="46" y="112" text-anchor="middle">요서지방</text></g>
+          <g class="far-region"><rect class="fbox" x="10" y="255" width="76" height="26" rx="8"/><text x="48" y="272" text-anchor="middle">산둥반도</text></g>
+          <g class="far-region"><rect class="fbox" x="415" y="552" width="46" height="24" rx="8"/><text x="438" y="568" text-anchor="middle">왜</text></g>
+
+          <!-- capital city dots (always shown for context) -->
+          <g class="city-dot"><circle cx="306" cy="110" r="3"/><text x="268" y="105">국내성</text></g>
+          <g class="city-dot"><circle cx="224" cy="252" r="3"/><text x="186" y="247">평양성</text></g>
+          <g class="city-dot"><circle cx="238" cy="342" r="3"/><text x="244" y="338">위례성</text></g>
+          <g class="city-dot"><circle cx="174" cy="424" r="3"/><text x="102" y="429">웅진·사비</text></g>
+          <g class="city-dot"><circle cx="312" cy="496" r="3"/><text x="318" y="493">금성</text></g>
+          <g class="city-dot"><circle cx="260" cy="520" r="2.4"/><text x="226" y="542">금관가야</text></g>
+
+          <!-- kingdom name labels -->
+          <g class="kingdom-label" id="label-goguryeo" style="opacity:0"><text x="220" y="170" text-anchor="middle">고구려</text></g>
+          <g class="kingdom-label" id="label-baekje" style="opacity:0"><text x="166" y="440" text-anchor="middle">백제</text></g>
+          <g class="kingdom-label" id="label-silla" style="opacity:0"><text x="300" y="490" text-anchor="middle">신라</text></g>
+          <g class="kingdom-label" id="label-gaya" style="opacity:0"><text x="256" y="504" text-anchor="middle" font-size="11">가야</text></g>
+
+          <!-- king tags -->
+          <g class="king-tag" id="king-goguryeo" style="opacity:0"><text x="220" y="190" text-anchor="middle"></text></g>
+          <g class="king-tag" id="king-baekje" style="opacity:0"><text x="166" y="460" text-anchor="middle"></text></g>
+          <g class="king-tag" id="king-silla" style="opacity:0"><text x="300" y="510" text-anchor="middle"></text></g>
+
+          <!-- foreign markers -->
+          <g class="foreign-tag" id="f-buyeo" style="opacity:0"><rect class="fbox" x="205" y="6" width="60" height="24" rx="8"/><text x="235" y="22" text-anchor="middle">🏔 부여</text></g>
+          <g class="foreign-tag" id="f-dongbuyeo" style="opacity:0"><rect class="fbox" x="345" y="20" width="76" height="24" rx="8"/><text x="383" y="36" text-anchor="middle">🏔 동부여</text></g>
+          <g class="foreign-tag" id="f-huyeon" style="opacity:0"><rect class="fbox" x="40" y="50" width="70" height="24" rx="8"/><text x="75" y="66" text-anchor="middle">🏯 후연</text></g>
+          <g class="foreign-tag" id="f-sushen" style="opacity:0"><rect class="fbox" x="330" y="0" width="66" height="24" rx="8"/><text x="363" y="16" text-anchor="middle">🏕 숙신</text></g>
+          <g class="foreign-tag" id="f-khitan" style="opacity:0"><rect class="fbox" x="15" y="145" width="66" height="24" rx="8"/><text x="48" y="161" text-anchor="middle">🐎 거란</text></g>
+          <g class="foreign-tag" id="f-sui" style="opacity:0"><rect class="fbox" x="10" y="190" width="66" height="24" rx="8"/><text x="43" y="206" text-anchor="middle">🐉 수나라</text></g>
+          <g class="foreign-tag" id="f-tang" style="opacity:0"><rect class="fbox" x="10" y="220" width="66" height="24" rx="8"/><text x="43" y="236" text-anchor="middle">🐉 당나라</text></g>
+
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--indigo)"></i>고구려</span>
+        <span><i style="background:var(--teal)"></i>백제</span>
+        <span><i style="background:var(--clay-soft)"></i>신라</span>
+        <span><i style="background:var(--gold)"></i>가야</span>
+        <span><i style="background:var(--stone)"></i>다른 나라</span>
+      </div>
+    </div>
+
+    <div class="cards-panel">
+      <div class="cards-title" id="cardsTitle">이야기</div>
+      <div class="card-list" id="cardList"></div>
+    </div>
+  </div>
+
+  <footer class="credit">58개월 아이와 함께 보는 삼국유사 · 대략적인 시기와 영역으로 그린 이야기 지도예요</footer>
+</div>
+
+<script>
+/* map config per kingdom per era: {variant:'normal'|'peak'|'unified', mood:'founding'|'normal'|'fading'|'fallen'} */
+const ERAS = [
+  { id:1, yr:"기원전 57년", short:"신라\n건국", title:"신라의 시작 — 박혁거세",
+    map:{ silla:{v:'normal',m:'founding'} },
+    cards:[ {k:'silla', king:'박혁거세', icon:'🥚', text:'커다란 알에서 태어난 아기가 자라서 신라의 첫 임금님이 되었어요.'} ] },
+
+  { id:2, yr:"기원전 37년", short:"고구려\n건국", title:"고구려의 시작 — 동명성왕(주몽)",
+    map:{ goguryeo:{v:'normal',m:'founding'}, silla:{v:'normal',m:'founding'} },
+    cards:[ {k:'goguryeo', king:'동명성왕(주몽)', icon:'🏹', text:'활을 아주 잘 쏘던 주몽이 부여를 떠나 고구려를 세웠어요.'},
+            {k:'foreign', king:'부여', icon:'🏔', text:'주몽이 원래 살던 나라예요. 고구려의 뿌리가 된 곳이지요.', foreign:true} ],
+    foreign:['buyeo'] },
+
+  { id:3, yr:"기원전 18년", short:"백제\n건국", title:"백제의 시작 — 온조왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'founding'} },
+    cards:[ {k:'baekje', king:'온조왕', icon:'🛶', text:'주몽의 아들 온조가 남쪽으로 내려와 위례성에 백제를 세웠어요.'} ] },
+
+  { id:4, yr:"42년", short:"가야\n건국", title:"가야의 시작 — 김수로왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'founding'} },
+    cards:[ {k:'gaya', king:'김수로왕', icon:'🥇', text:'하늘에서 내려온 황금 알에서 태어난 수로왕이 가야를 세웠어요.'} ] },
+
+  { id:5, yr:"57년", short:"신라\n탈해왕", title:"신라 4대 임금 — 탈해왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'silla', king:'탈해왕', icon:'🌊', text:'알에서 태어나 궤짝을 타고 바다를 건너온 탈해가 신라의 임금님이 되었어요.'} ] },
+
+  { id:6, yr:"262~284년", short:"신라\n미추왕", title:"신라의 첫 김씨 임금 — 미추왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'silla', king:'미추왕', icon:'🎋', text:'김씨 가문 최초로 임금님이 되어, 여러 번 쳐들어온 백제를 물리쳤어요.'} ] },
+
+  { id:7, yr:"346~375년", short:"백제\n근초고왕", title:"백제, 가장 넓었을 때 — 근초고왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'peak',m:'normal'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'baekje', king:'근초고왕', icon:'👑', text:'백제를 가장 넓고 강하게 만든 임금님이에요. 지도에서 초록색 땅이 제일 커졌어요!'},
+            {k:'baekje', king:'근초고왕', icon:'⚔️', text:'371년, 평양성까지 쳐들어가 고구려를 크게 이겼어요.'},
+            {k:'goguryeo', king:'고국원왕', icon:'😢', text:'이 전투에서 고구려의 고국원왕이 그만 목숨을 잃고 말았어요.', foreign:true} ] },
+
+  { id:8, yr:"391~413년", short:"고구려\n광개토대왕", title:"고구려, 가장 넓었을 때 — 광개토대왕",
+    map:{ goguryeo:{v:'peak',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'fading'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'광개토대왕', icon:'🐎', text:'말을 타고 사방으로 땅을 넓혀, 고구려를 가장 크게 만든 영웅이에요. 지도의 남색 땅을 보세요!'},
+            {k:'goguryeo', king:'광개토대왕', icon:'🗺️', text:'동부여, 후연, 거란, 숙신까지 물리치며 영토를 크게 넓혔어요.'},
+            {k:'baekje', king:'아신왕', icon:'😥', text:'광개토대왕에게 여러 번 성을 빼앗긴 백제의 임금님이에요.', foreign:true} ],
+    foreign:['dongbuyeo','huyeon','khitan','sushen'] },
+
+  { id:9, yr:"396년", short:"광개토\n백제정벌", title:"광개토대왕, 백제 한성을 포위하다",
+    map:{ goguryeo:{v:'peak',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'fading'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'광개토대왕', icon:'🏯', text:'백제의 수도 한성을 포위해서 항복을 받아냈어요.'},
+            {k:'baekje', king:'아신왕', icon:'🙇', text:'결국 광개토대왕 앞에 무릎을 꿇을 수밖에 없었어요.', foreign:true} ] },
+
+  { id:20, yr:"413~491년", short:"고구려\n장수왕", title:"장수왕, 한성을 차지하다",
+    map:{ goguryeo:{v:'peak',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'fading'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'장수왕', icon:'🏯', text:'장수왕은 수도를 평양으로 옮기고, 475년에 백제의 한성을 차지했어요.'},
+            {k:'baekje', king:'개로왕', icon:'😢', text:'백제는 한성을 잃고, 더 남쪽의 웅진으로 수도를 옮겼어요.', foreign:true} ] },
+
+  { id:10, yr:"501~523년", short:"백제\n무령왕", title:"백제를 다시 일으키다 — 무령왕",
+    map:{ goguryeo:{v:'peak',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'normal'} },
+    cards:[ {k:'baekje', king:'무령왕', icon:'🌾', text:'한성은 고구려 땅이 되었지만, 무령왕은 웅진에서 백제를 다시 튼튼하게 세웠어요.'} ] },
+
+  { id:11, yr:"532년 · 562년", short:"가야\n멸망", title:"가야 이야기의 끝 — 이사부 장군",
+    map:{ goguryeo:{v:'peak',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'fading'} },
+    cards:[ {k:'gaya', king:'구형왕', icon:'💔', text:'532년, 금관가야의 마지막 임금님이 신라에 나라를 넘겨주었어요.'},
+            {k:'silla', king:'이사부 장군', icon:'🛡️', text:'562년, 용맹한 이사부 장군이 마지막 남은 대가야까지 정복해 신라 땅이 크게 넓어졌어요! 이때 한강 유역도 신라 쪽으로 보아요.'} ] },
+
+  { id:12, yr:"612년", short:"을지문덕\n살수대첩", title:"을지문덕, 살수에서 크게 이기다",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'을지문덕 장군', icon:'💧', text:'수나라의 커다란 군대를 살수(지금의 청천강)에서 크게 무찔렀어요.'},
+            {k:'foreign', king:'수 양제', icon:'🐉', text:'백만이 넘는 군사를 이끌고 왔지만 크게 지고 돌아갔어요.', foreign:true} ],
+    foreign:['sui'] },
+
+  { id:13, yr:"632~647년", short:"신라\n선덕여왕", title:"신라 최초의 여왕 — 선덕여왕",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'normal'} },
+    cards:[ {k:'silla', king:'선덕여왕', icon:'🔭', text:'신라 최초의 여자 임금님이에요. 첨성대와 황룡사 탑을 만들었어요.'} ] },
+
+  { id:14, yr:"642년", short:"연개소문\n정변", title:"고구려의 실권자 — 연개소문",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'연개소문 장군', icon:'⚔️', text:'힘센 장군 연개소문이 권력을 잡고 고구려를 이끌기 시작했어요.'} ] },
+
+  { id:15, yr:"645년", short:"안시성\n전투", title:"작은 성의 큰 승리 — 안시성 전투",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'안시성 사람들', icon:'🏯', text:'작은 성이었지만 백성들이 힘을 모아 끝까지 지켜냈어요.'},
+            {k:'foreign', king:'당 태종', icon:'🐉', text:'중국을 통일한 힘센 황제였지만, 안시성은 끝내 무너뜨리지 못했어요.', foreign:true} ],
+    foreign:['tang'] },
+
+  { id:16, yr:"660년", short:"백제\n멸망", title:"백제 이야기의 끝 — 의자왕과 계백",
+    map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'peak',m:'normal'}, baekje:{v:'normal',m:'fallen'} },
+    cards:[ {k:'baekje', king:'의자왕', icon:'👑', text:'백제의 마지막 임금님이에요.'},
+            {k:'baekje', king:'계백 장군', icon:'🛡️', text:'적은 군사로 황산벌에서 끝까지 용감하게 싸운 장군이에요.'},
+            {k:'silla', king:'김유신 장군', icon:'⭐', text:'신라의 이름난 장군 김유신이 백제를 무너뜨렸어요.', foreign:true} ],
+    foreign:['tang'] },
+
+  { id:17, yr:"668년", short:"고구려\n멸망", title:"고구려 이야기의 끝",
+    map:{ goguryeo:{v:'normal',m:'fallen'}, silla:{v:'peak',m:'normal'} },
+    cards:[ {k:'goguryeo', king:'연개소문의 아들들', icon:'😞', text:'연개소문이 세상을 떠난 뒤 아들들이 서로 다투다가 고구려가 무너지고 말았어요.'} ],
+    foreign:['tang'] },
+
+  { id:18, yr:"676년", short:"신라\n삼국통일", title:"세 나라를 하나로 — 문무왕",
+    map:{ silla:{v:'unified',m:'normal'} },
+    cards:[ {k:'silla', king:'문무왕', icon:'🎉', text:'마침내 신라, 백제, 고구려 땅을 하나로 합쳤어요. 지도에서 신라 땅이 제일 커졌어요!'} ] },
+
+  { id:19, yr:"828~841년 · 보너스", short:"통일신라\n장보고", title:"바다를 지킨 영웅 — 장보고",
+    map:{ silla:{v:'unified',m:'normal'} },
+    cards:[ {k:'silla', king:'장보고', icon:'⛵', text:'청해진을 세우고 바다의 도적을 물리치며 바닷길을 안전하게 지켰어요.'} ] },
+];
+
+const KINGDOM_NAME = { silla:'신라', goguryeo:'고구려', baekje:'백제', gaya:'가야', foreign:'다른 나라' };
+const PORTRAIT_SRC = {
+  goguryeo:'assets/images/portrait-goguryeo.png',
+  baekje:'assets/images/portrait-baekje.png',
+  silla:'assets/images/portrait-silla.png',
+  gaya:'assets/images/portrait-gaya.png',
+  foreign:'assets/images/portrait-foreign.png'
+};
+const KINGDOMS = ['goguryeo','baekje','silla','gaya'];
+const VARIANTS = {
+  goguryeo:['normal','peak'],
+  baekje:['normal','peak'],
+  silla:['normal','peak','unified'],
+  gaya:['normal']
+};
+const ALL_FOREIGN = ['buyeo','dongbuyeo','huyeon','sushen','khitan','sui','tang'];
+
+let current = 0;
+
+function buildTimeline(){
+  const track = document.getElementById('timelineTrack');
+  track.innerHTML = '';
+  ERAS.forEach((e, i)=>{
+    const b = document.createElement('button');
+    b.className = 'era-btn';
+    b.innerHTML = `<span class="yr">${e.yr.split('·')[0].trim()}</span><span class="lb">${e.short.replace('\n','<br>')}</span>`;
+    b.addEventListener('click', ()=> setEra(i));
+    track.appendChild(b);
+  });
+}
+
+function setKingdomState(kingdom, cfg){
+  VARIANTS[kingdom].forEach(v=>{
+    const el = document.getElementById(`t-${kingdom}-${v}`);
+    if(!el) return;
+    el.classList.remove('mood-hidden','mood-founding','mood-normal','mood-fading','mood-fallen');
+    if(cfg && cfg.v === v){
+      el.classList.add('mood-' + cfg.m);
+    } else {
+      el.classList.add('mood-hidden');
+    }
+  });
+}
+
+function showLabel(id, show){
+  const l = document.getElementById('label-'+id);
+  if(l) l.style.opacity = show ? 1 : 0;
+}
+function updateKing(id, king){
+  const g = document.getElementById('king-'+id);
+  if(!g) return;
+  const t = g.querySelector('text');
+  if(king){ t.textContent = king; g.style.opacity = 1; }
+  else { g.style.opacity = 0; }
+}
+
+function portraitFor(card){
+  return PORTRAIT_SRC[card.foreign ? 'foreign' : card.k] || PORTRAIT_SRC.foreign;
+}
+
+function render(){
+  const era = ERAS[current];
+  const mapImage = document.getElementById('eraMapImage');
+  if(mapImage){
+    const imageNo = String(era.id).padStart(2, '0');
+    mapImage.src = `assets/era-maps/era-${imageNo}.png`;
+    mapImage.alt = `${era.yr} ${era.title} 지도`;
+  }
+
+  KINGDOMS.forEach(k=>{
+    const cfg = era.map[k];
+    setKingdomState(k, cfg);
+    showLabel(k, !!cfg);
+    updateKing(k, null);
+  });
+
+  era.cards.filter(c=>!c.foreign).forEach(c=>{
+    if(['silla','goguryeo','baekje'].includes(c.k)) updateKing(c.k, c.king);
+  });
+
+  ALL_FOREIGN.forEach(f=>{
+    const el = document.getElementById('f-'+f);
+    if(el) el.style.opacity = 0;
+  });
+  (era.foreign||[]).forEach(f=>{
+    const el = document.getElementById('f-'+f);
+    if(el) el.style.opacity = 1;
+  });
+
+  document.getElementById('cardsTitle').textContent = `📖 ${era.yr} — ${era.title}`;
+  const list = document.getElementById('cardList');
+  list.innerHTML = '';
+  era.cards.forEach(c=>{
+    const div = document.createElement('div');
+    const kingdomKey = c.foreign ? 'foreign' : c.k;
+    div.className = `event-card c-${kingdomKey}` + (c.foreign ? ' foreign' : '');
+    div.innerHTML = `
+      ${c.foreign ? `<span class="foreign-note">🌏 다른 나라 이야기</span>` : ''}
+      <div class="top-row">
+        <img class="portrait-thumb" src="${portraitFor(c)}" alt="" aria-hidden="true">
+        <div class="crest">${c.icon}</div>
+        <div class="king-name">${c.king}</div>
+        <div class="kingdom-chip">${KINGDOM_NAME[kingdomKey]}</div>
+      </div>
+      <p class="event-text">${c.text}</p>
+    `;
+    list.appendChild(div);
+  });
+
+  document.querySelectorAll('.era-btn').forEach((b,i)=>{ b.classList.toggle('active', i===current); });
+  const activeBtn = document.querySelectorAll('.era-btn')[current];
+  if(activeBtn) activeBtn.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+}
+
+function setEra(i){
+  current = Math.max(0, Math.min(ERAS.length-1, i));
+  render();
+}
+
+document.getElementById('prevBtn').addEventListener('click', ()=> setEra(current-1));
+document.getElementById('nextBtn').addEventListener('click', ()=> setEra(current+1));
+
+buildTimeline();
+setEra(0);
+</script>
+</body>
+</html>
