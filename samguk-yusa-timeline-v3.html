@@ -139,6 +139,21 @@
     min-height:340px; border:3px solid #d8c9a3;
   }
   .cards-title{ font-family:'Do Hyeon', sans-serif; font-size:20px; margin:2px 4px 12px; color:var(--indigo); }
+  .story-art{
+    display:none;
+    margin:0 0 14px;
+    border:2.5px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+    background:#eadfc6;
+    box-shadow:3px 4px 0 rgba(36,28,20,.18);
+  }
+  .story-art img{
+    display:block;
+    width:100%;
+    aspect-ratio:16/9;
+    object-fit:cover;
+  }
   .card-list{ display:flex; flex-direction:column; gap:12px; }
   .event-card{
     border-radius:16px; padding:12px 14px; border:2.5px solid var(--line);
@@ -355,6 +370,9 @@
 
     <div class="cards-panel">
       <div class="cards-title" id="cardsTitle">이야기</div>
+      <figure class="story-art" id="storyArt">
+        <img id="storyArtImage" src="" alt="">
+      </figure>
       <div class="card-list" id="cardList"></div>
     </div>
   </div>
@@ -389,7 +407,9 @@ const ERAS = [
 
   { id:6, yr:"262~284년", short:"신라\n미추왕", title:"신라의 첫 김씨 임금 — 미추왕",
     map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'normal',m:'normal'}, gaya:{v:'normal',m:'normal'} },
-    cards:[ {k:'silla', king:'미추왕', icon:'🎋', text:'김씨 가문 최초로 임금님이 되어, 여러 번 쳐들어온 백제를 물리쳤어요.'} ] },
+    art:{ src:'assets/images/era-06-bamboo-army.png', alt:'백제군과 신라군, 댓잎부대가 싸우는 설화 장면' },
+    cards:[ {k:'silla', king:'미추왕', icon:'🎋', text:'김씨 가문 최초로 임금님이 되어, 여러 번 쳐들어온 백제를 물리쳤어요.'},
+            {k:'silla', king:'댓잎부대', icon:'🍃', text:'옛이야기에는 대나무 잎을 단 신비한 군사들이 나타나 신라를 도왔다고 전해져요.'} ] },
 
   { id:7, yr:"346~375년", short:"백제\n근초고왕", title:"백제, 가장 넓었을 때 — 근초고왕",
     map:{ goguryeo:{v:'normal',m:'normal'}, silla:{v:'normal',m:'normal'}, baekje:{v:'peak',m:'normal'}, gaya:{v:'normal',m:'normal'} },
@@ -560,6 +580,17 @@ function render(){
   });
 
   document.getElementById('cardsTitle').textContent = `📖 ${era.yr} — ${era.title}`;
+  const storyArt = document.getElementById('storyArt');
+  const storyArtImage = document.getElementById('storyArtImage');
+  if(era.art){
+    storyArt.style.display = 'block';
+    storyArtImage.src = era.art.src;
+    storyArtImage.alt = era.art.alt || '';
+  } else {
+    storyArt.style.display = 'none';
+    storyArtImage.removeAttribute('src');
+    storyArtImage.alt = '';
+  }
   const list = document.getElementById('cardList');
   list.innerHTML = '';
   era.cards.forEach(c=>{
