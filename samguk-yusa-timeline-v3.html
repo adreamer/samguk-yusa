@@ -147,12 +147,72 @@
     overflow:hidden;
     background:#eadfc6;
     box-shadow:3px 4px 0 rgba(36,28,20,.18);
+    cursor:pointer;
+    position:relative;
   }
+  .story-art:focus-visible{ outline:4px solid var(--gold); outline-offset:3px; }
+  .story-art::after{
+    content:"크게 보기";
+    position:absolute;
+    right:10px;
+    bottom:10px;
+    padding:4px 9px;
+    border-radius:999px;
+    background:rgba(36,28,20,.78);
+    color:#fffaf0;
+    font-size:12px;
+    box-shadow:0 2px 0 rgba(0,0,0,.22);
+    opacity:0;
+    transform:translateY(4px);
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .story-art:hover::after,
+  .story-art:focus-visible::after{ opacity:1; transform:translateY(0); }
   .story-art img{
     display:block;
     width:100%;
     aspect-ratio:16/9;
     object-fit:cover;
+  }
+  .image-modal{
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:22px;
+    background:rgba(9,12,22,.82);
+    z-index:20;
+  }
+  .image-modal.open{ display:flex; }
+  .image-modal-dialog{
+    position:relative;
+    width:min(1120px, 100%);
+    max-height:calc(100vh - 44px);
+  }
+  .image-modal img{
+    display:block;
+    width:100%;
+    max-height:calc(100vh - 44px);
+    object-fit:contain;
+    border-radius:16px;
+    border:3px solid #d8c9a3;
+    background:#eadfc6;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  .image-modal-close{
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:38px;
+    height:38px;
+    border:2px solid rgba(255,250,240,.82);
+    border-radius:50%;
+    background:rgba(36,28,20,.82);
+    color:#fffaf0;
+    font-size:24px;
+    line-height:1;
+    cursor:pointer;
   }
   .card-list{ display:flex; flex-direction:column; gap:12px; }
   .event-card{
@@ -380,6 +440,13 @@
   <footer class="credit">58개월 아이와 함께 보는 삼국유사 · 대략적인 시기와 영역으로 그린 이야기 지도예요</footer>
 </div>
 
+<div class="image-modal" id="imageModal" role="dialog" aria-modal="true" aria-label="삽화 크게 보기">
+  <div class="image-modal-dialog">
+    <button class="image-modal-close" id="imageModalClose" type="button" aria-label="닫기">×</button>
+    <img id="imageModalImage" src="" alt="">
+  </div>
+</div>
+
 <script>
 /* map config per kingdom per era: {variant:'normal'|'peak'|'unified', mood:'founding'|'normal'|'fading'|'fallen'} */
 const ERAS = [
@@ -592,10 +659,16 @@ function render(){
   const storyArtImage = document.getElementById('storyArtImage');
   if(era.art){
     storyArt.style.display = 'block';
+    storyArt.setAttribute('tabindex', '0');
+    storyArt.setAttribute('role', 'button');
+    storyArt.setAttribute('aria-label', '삽화 크게 보기');
     storyArtImage.src = era.art.src;
     storyArtImage.alt = era.art.alt || '';
   } else {
     storyArt.style.display = 'none';
+    storyArt.removeAttribute('tabindex');
+    storyArt.removeAttribute('role');
+    storyArt.removeAttribute('aria-label');
     storyArtImage.removeAttribute('src');
     storyArtImage.alt = '';
   }
@@ -630,6 +703,38 @@ function setEra(i){
 
 document.getElementById('prevBtn').addEventListener('click', ()=> setEra(current-1));
 document.getElementById('nextBtn').addEventListener('click', ()=> setEra(current+1));
+
+const imageModal = document.getElementById('imageModal');
+const imageModalImage = document.getElementById('imageModalImage');
+const imageModalClose = document.getElementById('imageModalClose');
+const storyArt = document.getElementById('storyArt');
+function openImageModal(){
+  const era = ERAS[current];
+  if(!era.art) return;
+  imageModalImage.src = era.art.src;
+  imageModalImage.alt = era.art.alt || '';
+  imageModal.classList.add('open');
+  imageModalClose.focus();
+}
+function closeImageModal(){
+  imageModal.classList.remove('open');
+  imageModalImage.removeAttribute('src');
+  imageModalImage.alt = '';
+}
+storyArt.addEventListener('click', openImageModal);
+storyArt.addEventListener('keydown', e=>{
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    openImageModal();
+  }
+});
+imageModalClose.addEventListener('click', closeImageModal);
+imageModal.addEventListener('click', e=>{
+  if(e.target === imageModal) closeImageModal();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && imageModal.classList.contains('open')) closeImageModal();
+});
 
 buildTimeline();
 setEra(0);
