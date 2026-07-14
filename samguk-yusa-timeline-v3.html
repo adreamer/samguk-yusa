@@ -250,6 +250,9 @@
   .c-goguryeo{ --kc: var(--indigo); }
   .c-baekje  { --kc: var(--teal); }
   .c-gaya    { --kc: var(--gold); }
+  .c-laterbaekje{ --kc:#c59a2d; }
+  .c-latergoguryeo{ --kc:#6f5aa8; }
+  .c-goryeo{ --kc:#2f8f8a; }
   .c-foreign { --kc: var(--stone); }
   .event-card{ border-left:8px solid var(--kc); }
   .crest{ background:var(--kc); color:#fff; }
@@ -586,14 +589,47 @@ const ERAS = [
     map:{ silla:{v:'unified',m:'normal'} },
     art:{ src:'assets/images/era-19-jang-bogo-sea-battle.png', alt:'청해진 앞바다에서 장보고의 신라 함대가 해적선을 막아내는 장면' },
     cards:[ {k:'silla', king:'장보고', icon:'⛵', text:'청해진을 세우고 바다의 도적을 물리치며 바닷길을 안전하게 지켰어요.'} ] },
+
+  { id:23, yr:"892~900년", short:"견훤\n후백제", title:"견훤, 후백제를 세우다",
+    map:{},
+    art:{ src:'assets/images/era-23-gyeon-hwon-later-baekje.png', alt:'완산주 성 앞에서 견훤이 후백제 깃발을 세우는 장면' },
+    cards:[ {k:'laterbaekje', king:'견훤', icon:'🚩', text:'신라가 약해지자 견훤은 서남쪽에서 힘을 키우고 후백제를 세웠어요.'},
+            {k:'laterbaekje', king:'완산주', icon:'🏯', text:'후백제는 완산주를 중심으로 새 백제를 꿈꾸었어요.'} ] },
+
+  { id:24, yr:"901년", short:"궁예\n후고구려", title:"궁예, 후고구려를 세우다",
+    map:{},
+    art:{ src:'assets/images/era-24-gung-ye-later-goguryeo.png', alt:'궁예가 성 위에서 후고구려의 시작을 알리는 장면' },
+    cards:[ {k:'latergoguryeo', king:'궁예', icon:'🏔️', text:'궁예는 중부와 북쪽에서 힘을 키워 후고구려를 세웠어요.'},
+            {k:'latergoguryeo', king:'후고구려 사람들', icon:'🛡️', text:'흔들리던 신라 말기에 사람들은 새 나라의 시작을 지켜보았어요.'} ] },
+
+  { id:25, yr:"918년", short:"왕건\n고려 건국", title:"왕건, 고려를 세우다",
+    map:{},
+    art:{ src:'assets/images/era-25-wang-geon-founds-goryeo.png', alt:'왕건이 신하와 백성 앞에서 고려의 새 출발을 알리는 장면' },
+    cards:[ {k:'goryeo', king:'왕건', icon:'👑', text:'왕건은 궁예를 대신해 새 나라 고려를 세웠어요.'},
+            {k:'goryeo', king:'고려', icon:'🌿', text:'고려는 흩어진 사람들을 모아 다시 하나의 나라를 만들고자 했어요.'} ] },
+
+  { id:26, yr:"935년", short:"견훤\n고려로", title:"견훤, 왕건에게 몸을 맡기다",
+    map:{},
+    art:{ src:'assets/images/era-26-gyeon-hwon-seeks-goryeo.png', alt:'나이 든 견훤이 고려 궁궐에 도착하고 왕건이 맞이하는 장면' },
+    cards:[ {k:'laterbaekje', king:'견훤', icon:'😔', text:'후백제를 세운 견훤은 나중에 아들들에게 쫓겨나 고려로 갔어요.'},
+            {k:'goryeo', king:'왕건', icon:'🤝', text:'왕건은 찾아온 견훤을 맞이했고, 후백제는 점점 흔들리게 되었어요.'} ] },
+
+  { id:27, yr:"935~936년", short:"고려\n후삼국 통일", title:"고려, 다시 하나로",
+    map:{},
+    art:{ src:'assets/images/era-27-goryeo-unification.png', alt:'왕건이 통일된 지도를 바라보고 사람들이 함께 새 나라를 세우는 장면' },
+    cards:[ {k:'goryeo', king:'왕건', icon:'🗺️', text:'935년 신라가 고려에 나라를 넘기고, 936년 후백제도 무너지며 고려가 후삼국을 통일했어요.'},
+            {k:'goryeo', king:'고려 사람들', icon:'🏘️', text:'오랫동안 나뉘었던 땅이 다시 하나가 되고, 사람들은 새 나라를 함께 세워 갔어요.'} ] },
 ];
 
-const KINGDOM_NAME = { silla:'신라', goguryeo:'고구려', baekje:'백제', gaya:'가야', foreign:'다른 나라' };
+const KINGDOM_NAME = { silla:'신라', goguryeo:'고구려', baekje:'백제', gaya:'가야', laterbaekje:'후백제', latergoguryeo:'후고구려', goryeo:'고려', foreign:'다른 나라' };
 const PORTRAIT_SRC = {
   goguryeo:'assets/images/portrait-goguryeo.png',
   baekje:'assets/images/portrait-baekje.png',
   silla:'assets/images/portrait-silla.png',
   gaya:'assets/images/portrait-gaya.png',
+  laterbaekje:'assets/images/portrait-baekje.png',
+  latergoguryeo:'assets/images/portrait-goguryeo.png',
+  goryeo:'assets/images/portrait-silla.png',
   foreign:'assets/images/portrait-foreign.png'
 };
 const KINGDOMS = ['goguryeo','baekje','silla','gaya'];
